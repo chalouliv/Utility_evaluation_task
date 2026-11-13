@@ -1,0 +1,42 @@
+# Config for utility task one, age prediction (regression). Run the pipeline with `uv run main.py`
+run: 
+  load_real: true 
+  model_selection: true
+  load_split_synthetic: true  
+  evaluate: true 
+  evaluate_classification: true
+  plots: true 
+  seed: 42
+  output_dir: output/path
+
+paths:
+  real_train: path/to/real/trainset.csv
+  real_test: path/to/real/testset.csv
+  synth_dir: path/to/output/directory/of/synthesis/method
+
+data:
+  target: AGE
+  synth_file_pattern: "eps_{eps}_seed_{seed}"  # {eps} is a number or the literal "none" (synthesis without DP).
+  eps: [1, 2, 4, 8, 16, 32, "none"]
+  seeds: [1, 2, 3, 4, 5]
+  columns:
+    AGE: {type: numerical} 
+    l_thickness: {type: numerical}
+    r_thickness: {type: numerical}
+
+models:
+  families: [ols, ridge, lasso]
+  # Alpha grid for Ridge and Lasso: 
+  alpha_grid:
+    start: -4
+    stop: 4
+    num: 50
+
+cv:
+  # Used for the outer and inner loops in model selection, and for alpha tuning.
+  n_folds: 10
+  shuffle: true
+
+metrics:
+  metrics : ["mae", "rmse", "r2"]
+  selection_metric: mae
