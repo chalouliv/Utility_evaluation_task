@@ -1,2 +1,2 @@
-Utility Task One: Age Prediciton (Regression)
+Utility Task One: Age Prediction (Regression)
 

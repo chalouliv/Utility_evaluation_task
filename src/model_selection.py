@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from functools import partial
 from sklearn.compose import ColumnTransformer
-from sklearn.linear_model import LassoCV, LinearRegression, RidgeCV
+from sklearn.linear_model import LassoCV, LinearRegression, RidgeCV, LogisticRegressionCV
 from sklearn.model_selection import KFold, cross_validate
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -21,6 +21,10 @@ def alpha_grid(config: dict) -> np.ndarray:
     grid = config["models"]["alpha_grid"]
     return np.logspace(grid["start"], grid["stop"], grid["num"])
  
+def c_grid(config: dict) -> np.ndarry:
+    grid = config["models"]["c_grid"]
+    return np.logspace(grid["start"], grid["stop"], grid["num"])
+
 def make_cv(config: dict) -> KFold:
     return KFold(
         n_splits = config["cv"]["n_folds"],
@@ -52,22 +56,40 @@ def build_pipeline(config: dict, family: str) -> Pipeline:
     ## Scale numeric columns, one-hot encode categoricals, then return three models pipelines.
     ## Ridge and Lasso determine an alpha by Inner CV.
     ## Vanilla linear
-    if family == "ols": 
+    if family == "linReg": 
         model = LinearRegression()
     ## Linear with ridge regulation
-    elif family == "ridge": 
+    elif family == "linRidge": 
         model = RidgeCV(
             alphas=alpha_grid(config), 
             cv=make_cv(config), 
             scoring="neg_mean_squared_error")  # Score by MSE so ridge uses the same selection rule as lasso.
     ## Linear with lasso regulation
-    elif family == "lasso":
+    elif family == "linLasso":
         model = LassoCV(
             alphas=alpha_grid(config),
             cv=make_cv(config),
             random_state=config["run"]["seed"],
-            max_iter=100_000,
+            max_iter=5000,
         )
+    ## Logistic with L1 
+    elif family == "logL1":
+        model = LogisticRegressionCV(
+            penalty='l1',
+            C = c_grid(config),
+            cv = make_cv(config),
+            random_state=config["run"]["seed"],
+            max_iter=5000
+            )
+    ## Logistic with l2
+    elif family == "logL2": 
+        model = LogisticRegressionCV(
+            penalty='l2', 
+            C = c_grid(config), 
+            cv = make_cv(config), 
+            random_state=config["run"]["seed"],
+            max_iter=5000
+            )
     else:
         raise ValueError(f"Unknown family {family!r}")
     return Pipeline([("preprocess", make_preprocess(config)), ("model", model)])
@@ -76,6 +98,11 @@ def chosen_alpha(pipe: Pipeline) -> float:
     ## return best alpha for each of the fitted model pipelines 
     model = pipe.named_steps["model"]
     return float(model.alpha_) if hasattr(model, "alpha_") else np.nan
+
+def chosen_C(pipe:Pipeline) -> float:
+    ## return best C for each of the fitted model pipelines 
+    model = pipe.named_steps["model"]
+    return float(model.C) if hasattr(model, "c_") else np.nan
 
 def run(config: dict, dpath: Path) -> None:
     ## Run nested CV to test and select alphas for Ridge and Lasso
