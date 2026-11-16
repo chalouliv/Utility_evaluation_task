@@ -69,7 +69,7 @@ def summarise(raw: pd.DataFrame, eps_order: list) -> pd.DataFrame:
     summary = grouped[metrics].agg(["mean", "std"])
     summary.columns = [f"{m}_{s}" for m, s in summary.columns]
     summary["n_seeds"] = grouped.size()
-    summary = summary.reset_index().dropna(axis=1, how="all")  # drop metrics that don't apply
+    summary = summary.reset_index()
 
     ## Create order for summary
     comp_order = {c: i for i, c in enumerate(["TRTR", "TSTR", "TSTS", "TRTS"])}
