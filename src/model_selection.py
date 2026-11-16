@@ -9,9 +9,9 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 from src import load_real
 
 NAME = "model_selection"
-
 REGRESSION_FAMILIES = ["linReg", "linRidge", "linLasso"]
 CLASSIFICATION_FAMILIES = ["logL1", "logL2"]
+
 SCORING_REGRESSION = {
     "neg_mae": "neg_mean_absolute_error",
     "neg_rmse": "neg_root_mean_squared_error",
@@ -130,14 +130,13 @@ def run(cfg: dict, dpath: Path) -> None:
     for target, task in specs.items():
         data = load_real.get_xy(real, "train", target)
         X = data["X"]
-        y = data["y"]
+        y = data["y"] #already encoded if needed 
 
         ## For each target picks families (models to compare), scoring (which metrics to compute), cv (outer fold spliter)
         if task == "regression":
             families, scoring, cv = REGRESSION_FAMILIES, SCORING_REGRESSION, KFold(n_splits=n_folds, shuffle=True, random_state=seed)
         elif task == "classification":
             families, scoring, cv = CLASSIFICATION_FAMILIES, SCORING_BINARY_CLASSIFICATION, StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed)
-            y = pd.Series(LabelEncoder().fit_transform(y), index=y.index) ## Encode into 0 and 1
         else:
             raise ValueError(f"Unknown type {task} for target {target}") ## Error if task is unrecognized 
         ## print(f"[{NAME}] {target} ({task}): X={X.shape}, families={families}")

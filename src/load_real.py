@@ -12,12 +12,17 @@ def load(cfg) -> dict:
         "test": test    
     }
 
-def get_xy(data: dict, split:str, target:str) -> dict: 
+def get_xy(data: dict, split:str, target:str, task:str) -> dict: 
+    ## todo: Make encoding generalizable, make sure features are all in the same order 
+    ## Split data into x and y and encodes if y is classification
     df = data[split]
     features = [c for c in df.columns if c != target]
+    y = df[target]
+    if task == "classification":
+       y = y.map({"Male": 1, "Female": 0}).rename(target)
     return {
         "X" : df[features], 
-        "y" : df[target],
+        "y" : y,
         "features" : features, 
         "target" : target
     }
