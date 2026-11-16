@@ -17,12 +17,13 @@ def list_pairs(cfg, dpath: Path) -> pd.DataFrame:
             test = out_dir / f"{run_name}_test.csv"
             records.append({"eps": eps, "seed": seed, "train": train, "test": test})
 
+   # print(records[1:5,:])
+
     return pd.DataFrame(records)
 
-
-def load_pair(cfg, row, features: list[str]) -> dict:
-    ## Load one synthetic train/test pair, seperate out target (for evaluate.py)
-    target = cfg["data"]["target"]
+### CHECK IF NEEDED, CAN PROBABLY BE REPLACED BY GET_XY IN LOAD_REAL
+def load_pair(cfg, target, row, features: list[str]) -> dict:
+    ## Load one synthetic train/test pair, seperate out a given target (for evaluate.py)
     out = {}
     for split in ("train", "test"):
         df = pd.read_csv(row[split])
@@ -58,6 +59,6 @@ def run(cfg, dpath: Path) -> pd.DataFrame:
             test.to_csv(out_dir / f"{run_name}_test.csv", index=False)
     
     pairs = list_pairs(cfg, dpath)
-    counts = pairs.groupby("eps", sort=False)["seed"].nunique()
-    print(f"[load_synthetic] {len(pairs)} train/test pairs. Seeds per ε: {counts.to_dict()}")
+    # counts = pairs.groupby("eps", sort=False)["seed"].nunique()
+    # print(f"[load_synthetic] {len(pairs)} train/test pairs. Seeds per ε: {counts.to_dict()}")
     return pairs

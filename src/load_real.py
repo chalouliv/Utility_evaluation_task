@@ -3,19 +3,25 @@ import pandas as pd
 
 NAME = "load_real"
 
-def load(config) -> dict:
+def load(cfg) -> dict:
     ## Load real data. Returns the dataframes and feature order.
-    target = config["data"]["target"]
-    train = pd.read_csv(config["paths"]["real_train"])
-    test = pd.read_csv(config["paths"]["real_train"])
+    train = pd.read_csv(cfg["paths"]["real_train"])
+    test = pd.read_csv(cfg["paths"]["real_test"])
     return {
         "train": train,
         "test": test    
     }
 
-def run(config: dict, dpath: Path) -> None:
-    real = load(config)
-    print(
-         f"[{NAME}] train {real['X_train'].shape}, test {real['X_test'].shape}, "
-         f"{len(real['features'])} features"
-    )
+def get_xy(data: dict, split:str, target:str) -> dict: 
+    df = data[split]
+    features = [c for c in df.columns if c != target]
+    return {
+        "X" : df[features], 
+        "y" : df[target],
+        "features" : features, 
+        "target" : target
+    }
+
+def run(cfg, dpath: Path): 
+    real = load(cfg)
+    return print(f"Loaded real data trainset of size {real["train"].info()} and testset of size {real["test"].info()})")
