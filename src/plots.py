@@ -171,6 +171,37 @@ def plot_zeros(coefs, target, eps, path) -> None:
     label = TARGET_LABELS.get(target, target)
     fig.suptitle(f"{label} Features Dropped by L1 (coefficient = 0)")
     save(fig, path)
+
+
+def plot_C(raw, target, eps, pos, path) -> None:
+    ## Chosen regularisation strength C per ε (TSTR fits), with real and null baselines
+    raw = raw[(raw["target"] == target) & raw["C"].notna()]
+    tstr = raw[raw["comparison"] == "TSTR"]
+    s = SERIES["TSTR"]
+
+    fig, ax = plt.subplots(figsize=(6, 4.5))
+    ## Each run as a faint dot, so ties on the grid are visible
+    ax.scatter(tstr["eps"].map(pos), tstr["C"], color=s["color"], alpha=0.35, s=20, label="TSTR (each run)")
+    ## Geometric mean across runs
+    gmean = np.exp(np.log(tstr["C"]).groupby(tstr["eps"]).mean())
+    gmean = gmean.reindex([e for e in eps if e in gmean.index])
+    ax.plot([pos[e] for e in gmean.index], gmean, color=s["color"], marker="o",
+            markersize=8, linewidth=2, label="TSTR (geometric mean)")
+
+    for comp, color in (("TRTR", BASELINE_COLOR), ("NULL", NULL_COLOR)):
+        vals = raw.loc[raw["comparison"] == comp, "C"]
+        if len(vals):
+            val = float(np.exp(np.log(vals).mean()))
+            ax.axhline(val, color=color, linestyle="--", linewidth=1.5, label=f"{comp} ({val:.3g})")
+
+    style_axes(ax, eps, pos)
+    ax.set_yscale("log")
+    ax.set_ylabel("Chosen C (smaller = stronger penalty)")
+    ax.legend(frameon=False, fontsize=8, bbox_to_anchor=(1, 1), loc="upper left")
+
+    label = TARGET_LABELS.get(target, target)
+    fig.suptitle(f"{label} Chosen Regularisation C versus Privacy Budget")
+    save(fig, path)
  
  
 def run(cfg, dpath) -> None:
@@ -198,6 +229,12 @@ def run(cfg, dpath) -> None:
                 name = f"{target.lower()}_{'_'.join(metrics)}_vs_eps.png"
                 # default args bind target/metrics now; a plain lambda would use the last loop values
                 jobs.append((name, lambda p, t=target, m=metrics: plot_metrics(raw, t, m, eps, pos, p)))
+
+    ## One C figure per target that has a chosen C (e.g. logL1; linReg has none)
+    if "C" in raw:
+        for target in raw.loc[raw["C"].notna() & (raw["comparison"] == "TSTR"), "target"].unique():
+            name = f"{target.lower()}_C_vs_eps.png"
+            jobs.append((name, lambda p, t=target: plot_C(raw, t, eps, pos, p)))
  
     ## One coefficient figure per target (only if evaluate.py wrote coefficients.csv)
     coefs_path = dpath / "evaluate" / "coefficients.csv"
