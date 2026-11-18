@@ -29,7 +29,7 @@ SCORING_MULTICLASS_CLASSIFICATION = {
 }
 # NEGATED = {"mae", "rmse", "log_loss"} ## sklearn's "neg_*" flip them back, not using 
 
-DEFAULT_SELECTION = {"regression": "neg_rmse", "classification": "roc_auc"}
+DEFAULT_SELECTION = {"regression": "neg_mae", "classification": "roc_auc"}
 
 def alpha_grid(cfg) -> np.ndarray:
     grid = cfg["models"]["alpha_grid"]
@@ -81,7 +81,7 @@ def pipeline(cfg, family: str) -> Pipeline:
             penalty="l1",
             solver="saga", 
             cv=StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed), 
-            scoring = "neg_log_loss", 
+            scoring = "roc_auc", 
             random_state=seed,
             max_iter=5000
         )
@@ -91,7 +91,7 @@ def pipeline(cfg, family: str) -> Pipeline:
             penalty="l2",
             solver="lbfgs", 
             cv=StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed),
-            scoring="neg_log_loss",
+            scoring="roc_auc",
             random_state=seed,
             max_iter=5000
         )
@@ -128,7 +128,7 @@ def run(cfg: dict, dpath: Path) -> None:
 
     ## Loop over each target and isolate appropriate X and y
     for target, task in specs.items():
-        data = load_real.get_xy(real, "train", target)
+        data = load_real.get_xy(real, "train", target, task)
         X = data["X"]
         y = data["y"] #already encoded if needed 
 

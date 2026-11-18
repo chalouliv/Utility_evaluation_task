@@ -1,8 +1,9 @@
 from pathlib import Path
+from random import shuffle
 import numpy as np
 import pandas as pd
 from sklearn.metrics import ( f1_score, log_loss,
-    mean_absolute_error, r2_score, roc_auc_score, root_mean_squared_error,
+    mean_absolute_error, r2_score, roc_auc_score, root_mean_squared_error, balanced_accuracy_score,
 )
 from src import load_real, load_split_synthetic, model_selection
 
@@ -39,33 +40,33 @@ def predict_and_score(task: str, pipe, X, y) -> dict:
         y_proba = pipe.predict_proba(X)[:, 1]     
         y_pred = (y_proba > 0.5).astype(int)  
         return {
+            "balanced_accuracy": balanced_accuracy_score(y, y_pred),
             "f1": f1_score(y, y_pred),      
-            "roc_auc": roc_auc_score(y, y_proba), 
-            "log_loss": log_loss(y, y_proba) 
+            "roc_auc": roc_auc_score(y, y_proba) 
+             
         } 
     
 
-def fit(cfg, family: str, X, y) -> dict:
+def fit(cfg, family: str, X, y, features) -> dict:
     ## Fit a fresh pipeline of the winning family
     pipe = model_selection.pipeline(cfg, family)
     pipe.fit(X, y)
-    return {"pipe": pipe}
+    C = model_selection.chosen_C(pipe)
 
-    '''
     ## collect coefficients for later (need to add)
     model = pipe[-1]
     names = pipe[:-1].get_feature_names_out(features)
     coef = pd.Series(np.ravel(model.coef_), index=names)
     intercept = float(np.ravel(model.intercept_)[0])
-    return {"pipe": pipe, "coef": coef, "intercept": intercept}
-    '''
+    return {"pipe": pipe, "coef": coef, "intercept": intercept, "C": C}
+
 
 def summarise(raw: pd.DataFrame, eps_order: list) -> pd.DataFrame:
     ## WRITTEN WITH CLAUDE ##
 
     ## Group each run and calculate mean and std
     grouped = raw.groupby(["target", "comparison", "eps"], dropna=False)
-    metrics = [m for m in ["mae", "rmse", "r2", "f1", "roc_auc", "log_loss"] if m in raw]
+    metrics = [m for m in ["mae", "rmse", "r2", "f1", "roc_auc", "balanced_accuracy"] if m in raw]
     summary = grouped[metrics].agg(["mean", "std"])
     summary.columns = [f"{m}_{s}" for m, s in summary.columns]
     summary["n_seeds"] = grouped.size()
@@ -87,6 +88,10 @@ def run(cfg, dpath=None) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     raw_results_path = out_dir / "raw_results.csv"
     summary_path = out_dir / "summary.csv"
+    coefs_path = out_dir / "coefficients.csv"
+    if coefs_path.exists():
+        print(f"[{NAME}] {coefs_path} exists, skipping. Delete it to rerun.")
+        return
     if raw_results_path.exists():
         print(f"[{NAME}] {raw_results_path} exists, skipping. Delete it to rerun.")
         return
@@ -105,9 +110,33 @@ def run(cfg, dpath=None) -> None:
     specs = {name: spec["type"] for name, spec in targets.items()} ## compress targets list
 
     rows = []
+    coefs = [] 
+    c = []
+
+    ## Record coefficients + intercept of a fitted model
+    def add_coefs(target, comparison, train_set, eps, seed, fit_result):
+        for feature, value in fit_result["coef"].items():
+            coefs.append({
+                "target": target,
+                "comparison": comparison,
+                "train_set": train_set,
+                "eps": eps,
+                "seed": seed,
+                "feature": feature,
+                "coef": value,
+            })
+        coefs.append({
+            "target": target,
+            "comparison": comparison,
+            "train_set": train_set,
+            "eps": eps,
+            "seed": seed,
+            "feature": "(intercept)",
+            "coef": fit_result["intercept"],
+        })
 
     ## Easier for collection
-    def add_row(target, comparison, train_set, test_set, eps, seed, n_train, scores):
+    def add_row(target, comparison, train_set, test_set, eps, seed, n_train, c, scores):
         rows.append({
             "target": target,
             "comparison": comparison,
@@ -116,12 +145,16 @@ def run(cfg, dpath=None) -> None:
             "eps": eps,
             "seed": seed,
             "n_train": n_train,
+            "C": c,
             **scores,
         })
 
     ## Fit and predict for TRTR: train real, test real (the baseline), per target.
     real_fits = {}
     real_xy = {}
+
+    ## Null model results for comparision (train target shuffled)
+    null_fits = {}
 
     for target, task in specs.items():
         ## Isolate X and y for each target
@@ -130,12 +163,29 @@ def run(cfg, dpath=None) -> None:
         X_te, y_te = test["X"], test["y"]
         real_xy[target] = (X_tr, y_tr, X_te, y_te)
 
+        ## get feature names 
+        features = X_tr.columns.tolist()
+
         # Fit fresh model of winning type for each task
-        real_fits[target] = fit(cfg, WINNERS[target], X_tr, y_tr)
+        real_fits[target] = fit(cfg, WINNERS[target], X_tr, y_tr, features)
+
+        ## Suffle y for each target in train 
+        y_tr_shuffled = y_tr.sample(frac=1).to_numpy()
+
+        # Fit null model of winning type for each task 
+        null_fits[target] = fit(cfg, WINNERS[target], X_tr, y_tr_shuffled, features)
+
+        ## Record coefficients for real and null fits
+        add_coefs(target, "TRTR", "real", None, None, real_fits[target])
+        add_coefs(target, "NULL", "real_suffled", None, None, null_fits[target])
 
         # Add results of TRTR to rows
-        add_row(target, "TRTR", "real", "real", None, None, len(X_tr),
+        add_row(target, "TRTR", "real", "real", None, None, len(X_tr), real_fits[target]["C"],
                 predict_and_score(task, real_fits[target]["pipe"], X_te, y_te))
+        
+        # Add results of NULL to rows 
+        add_row(target, "NULL", "real_suffled", "real", None, None, len(X_tr), null_fits[target]["C"],
+                predict_and_score(task, null_fits[target]["pipe"], X_te, y_te))
 
     ## Iterate through synthetic datasets 
     for _, pair in pairs.iterrows():
@@ -152,6 +202,8 @@ def run(cfg, dpath=None) -> None:
             
             ## Isolate target from real
             X_real_tr, y_real_tr, X_real_te, y_real_te  = real_xy[target]
+
+            features = X_real_tr.columns.tolist()
             
             ## Isolate target from synthetic
             syn_tr, syn_te = load_real.get_xy(syn, "train", target, task), load_real.get_xy(syn, "test", target, task)
@@ -162,23 +214,27 @@ def run(cfg, dpath=None) -> None:
             real_pipe = real_fits[target]["pipe"]
 
             ## TRTS: train real, test synthetic
-            add_row(target, "TRTS", "real", "synthetic", eps, seed, len(X_real_tr), 
+            add_row(target, "TRTS", "real", "synthetic", eps, seed, len(X_real_tr), real_fits[target]["C"],
                     predict_and_score(task, real_pipe, X_syn_te, y_syn_te)) 
 
             ## TSTR: train synthetic, test real
-            syn_fit = fit(cfg, WINNERS[target], X_syn_tr, y_syn_tr)
-            add_row(target, "TSTR", "synthetic", "real", eps, seed, len(X_syn_tr),
+            syn_fit = fit(cfg, WINNERS[target], X_syn_tr, y_syn_tr, features)
+            ## Record coefficients of the synthetic fit (shared by TSTR and TSTS)
+            add_coefs(target, "TSTR", "synthetic", eps, seed, syn_fit)
+            add_row(target, "TSTR", "synthetic", "real", eps, seed, len(X_syn_tr), syn_fit["C"],
                     predict_and_score(task, syn_fit["pipe"], X_real_te, y_real_te))
 
             ## TSTS: train synthetic, test synthetic (test from same dataset as train)
-            add_row(target, "TSTS", "synthetic", "synthetic", eps, seed, len(X_syn_tr),
+            add_row(target, "TSTS", "synthetic", "synthetic", eps, seed, len(X_syn_tr), syn_fit["C"],
                     predict_and_score(task, syn_fit["pipe"], X_syn_te, y_syn_te))
 
     # Convert to dataframe and order by target, comparison metric, and epsilon
     raw = pd.DataFrame(rows)
+    coef_df = pd.DataFrame(coefs)
     eps_order = list(pd.unique(pairs["eps"])) if len(pairs) else []
     summary = summarise(raw, eps_order)
 
     # Save
     raw.to_csv(raw_results_path, index=False)
     summary.to_csv(summary_path, index=False)
+    coef_df.to_csv(coefs_path, index=False)
