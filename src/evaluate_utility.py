@@ -83,7 +83,7 @@ def summarise(raw: pd.DataFrame, eps_order: list) -> pd.DataFrame:
 
     return summary.sort_values(["_t", "_c", "_e"]).drop(columns=["_t", "_c", "_e"]).reset_index(drop=True)
 
-def run(cfg, dpath=None) -> None:
+def run(cfg, dpath):
     ## Create paths for outputs and check if they already exist
     out_dir = dpath / NAME
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -266,3 +266,5 @@ def run(cfg, dpath=None) -> None:
     coef_df.to_csv(coefs_path, index=False)
     if preds:
         pd.concat(preds, ignore_index=True).to_csv(preds_path, index=False)
+    
+    return print(f"Done {NAME}.")

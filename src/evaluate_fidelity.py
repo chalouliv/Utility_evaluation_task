@@ -15,9 +15,7 @@ from src import load_real, load_split_synthetic
 
 NAME = "evaluate_fidelity"
 
-def main(cfg, dpath):
-    return 0
 
 
-if __name__ == "__main__":
-    main()
+def run(cfg, dpath) -> None: 
+    return print(f"Done {NAME}.")

@@ -107,7 +107,7 @@ def chosen_C(pipe: Pipeline) -> float:
     model = pipe.named_steps["model"]
     return float(np.ravel(model.C_)[0]) if hasattr(model, "C_") else np.nan
 
-def run(cfg: dict, dpath: Path) -> None:
+def run(cfg, dpath) -> None:
     ## Define output paths and skip if already done
     out_dir = dpath / NAME
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -182,3 +182,4 @@ def run(cfg: dict, dpath: Path) -> None:
     df["cv_random_state"] = cfg["run"]["seed"]
     df["model_random_state"] = cfg["run"]["seed"]
     df.to_csv(fpath, index=False)
+    return print(f"Done {NAME}.")

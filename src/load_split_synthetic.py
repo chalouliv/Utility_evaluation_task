@@ -33,7 +33,7 @@ def load_pair(cfg, target, row, features: list[str]) -> dict:
     return out
 
 
-def run(cfg, dpath: Path) -> pd.DataFrame:
+def run(cfg, dpath):
     ## Create paths for outputs and check if they already exist 
     out_dir = dpath / "synth_data"
     if out_dir.exists(): ## do not reload and split
@@ -61,4 +61,5 @@ def run(cfg, dpath: Path) -> pd.DataFrame:
     pairs = list_pairs(cfg, dpath)
     # counts = pairs.groupby("eps", sort=False)["seed"].nunique()
     # print(f"[load_synthetic] {len(pairs)} train/test pairs. Seeds per ε: {counts.to_dict()}")
-    return pairs
+
+    return print(f"Done {NAME}.")

@@ -27,6 +27,7 @@ def get_xy(data: dict, split:str, target:str, task:str) -> dict:
         "target" : target
     }
 
-def run(cfg, dpath: Path): 
+def run(cfg, dpath): 
     real = load(cfg)
-    return print(f"Loaded real data trainset of size {real["train"].info()} and testset of size {real["test"].info()})")
+    print(f"Loaded real data trainset of size {real["train"].info()} and testset of size {real["test"].info()})")
+    return print(f"Done {NAME}.")

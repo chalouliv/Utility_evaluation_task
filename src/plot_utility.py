@@ -340,3 +340,5 @@ def run(cfg, dpath) -> None:
             print(f"[plots] {name} exists, skipping. Delete it to redraw.")
             continue
         draw(path)
+    
+    return print(f"Done {NAME}.")
