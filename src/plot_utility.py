@@ -279,7 +279,7 @@ def run(cfg, dpath) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
 
     ## Find and load results of eval (evaluate.py writes to dpath / "evaluate")
-    raw_path = dpath / "evaluate" / "raw_results.csv"
+    raw_path = dpath / "evaluate_utility" / "raw_results.csv"
     if not raw_path.exists():
         raise FileNotFoundError(f"{raw_path} not found. Run evaluation (Step 4) first.")
     raw = pd.read_csv(raw_path, keep_default_na=False, na_values=[""])
