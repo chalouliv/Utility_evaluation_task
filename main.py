@@ -2,7 +2,7 @@ import random
 from pathlib import Path
 import numpy as np
 import yaml
-from src import load_real, plots, load_split_synthetic, evaluate, model_selection
+from src import load_real, model_selection, load_split_synthetic, evaluate_fidelity, evaluate_utility, plot_utility
  
 DPATH_ROOT = Path(__file__).parent
 FPATH_CONFIG = DPATH_ROOT / "config.yaml"
@@ -10,8 +10,9 @@ WORKFLOWS = [
     ("load_real", load_real),
     ("model_selection", model_selection),
     ("load_split_synthetic", load_split_synthetic),
-    ("evaluate", evaluate),
-    ("plots", plots),
+    ("evaluate_fidelity", evaluate_fidelity),
+    ("evaluate_utility", evaluate_utility),
+    ("plot_utility", plot_utility),
 ]
  
 def seed_everything(seed: int) -> None:

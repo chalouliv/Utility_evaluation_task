@@ -20,6 +20,15 @@ wheels = [
 ]
 
 [[package]]
+name = "colorama"
+version = "0.4.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/d8/53/6f443c9a4a8358a93a6792e2acffb9d9d5cb0a5cfd8802644b7b1c9a02e4/colorama-0.4.6.tar.gz", hash = "sha256:08695f5cb7ed6e0531a20572697297273c47b8cae5a63ffc6d6ed5c201be6e44", size = 27697, upload-time = "2022-10-25T02:36:22.414Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/d6/3965ed04c63042e047cb6a3e6ed1a63a35087b6a609aa3a15ed8ac56c221/colorama-0.4.6-py2.py3-none-any.whl", hash = "sha256:4f1d9991f5acc0ca119f9d443620b77f9d6b33703e51011c16baf57afb285fc6", size = 25335, upload-time = "2022-10-25T02:36:20.889Z" },
+]
+
+[[package]]
 name = "contourpy"
 version = "1.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -86,6 +95,21 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/d8/b8/bb129f524210c5d3eb8616876e02af280fba8b5554e0ac1afad80b51e06b/contourpy-1.4.0-cp315-cp315t-win32.whl", hash = "sha256:90feb8da006803a95ba573fddc9536357d0c3faddc3a4c9e22816ca49af52878", size = 371854, upload-time = "2026-09-11T19:04:48.106Z" },
     { url = "https://files.pythonhosted.org/packages/d8/b1/bc774d9d200cfc4f073bba78b1bb1cb3b55bf1c8c345eae41fc2db510459/contourpy-1.4.0-cp315-cp315t-win_amd64.whl", hash = "sha256:de503609fdb71f597634ca64fb4bd2f13d27c97f140e912b1e8ed93544840df0", size = 262450, upload-time = "2026-09-11T19:04:49.502Z" },
     { url = "https://files.pythonhosted.org/packages/54/bf/eb4ff492e1c3d027617b5a20e4e6d63a035b41b8cf77a95950159556a3a5/contourpy-1.4.0-cp315-cp315t-win_arm64.whl", hash = "sha256:78ed5c5f962b3e156109f0531b174a65ba80d13cc681a70227b12524c162e184", size = 587064, upload-time = "2026-09-11T19:04:51.148Z" },
+]
+
+[[package]]
+name = "copulas"
+version = "0.14.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "plotly" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/de/9e72e6788a65921068444dcebfd2c9a3c94b4aaa84c9acf5dc020117c87d/copulas-0.14.0.tar.gz", hash = "sha256:e1dd90663f3c6a8210e1313159adbf1c2ed48bf69224ffe99a338243a880e678", size = 45032, upload-time = "2026-01-16T20:24:13.404Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/f4/bc379a1af3a8b26e6eb9d94fc176bf95c44dc43f1ea960fd189c46664c32/copulas-0.14.0-py3-none-any.whl", hash = "sha256:de0bf2357401340fe784fd85ca0087950fb47267779fc7ba793c483e5d2e402c", size = 52678, upload-time = "2026-01-16T20:24:11.58Z" },
 ]
 
 [[package]]
@@ -889,6 +913,19 @@ wheels = [
 ]
 
 [[package]]
+name = "plotly"
+version = "7.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "narwhals" },
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/40/23/ed969530891a2fd44991f9d4c733ff349d87903b11d75366f1dee607f3ef/plotly-7.2.0.tar.gz", hash = "sha256:0c8299da0556ba9bf18d157f23982d189b627492a6c3cafba9d010b1b6ccb746", size = 6699266, upload-time = "2026-11-24T21:33:02.618Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/f8/43/86c04582164c54476d4dae5c053af82ba70b975f5babbf183ae6e51159b9/plotly-7.2.0-py3-none-any.whl", hash = "sha256:51ed86a5e71b0abfe4df9679a1da0564f9e7e93d5dc7cb35d433256b2cfce854", size = 9702562, upload-time = "2026-11-24T21:33:00.154Z" },
+]
+
+[[package]]
 name = "pyparsing"
 version = "3.3.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1052,6 +1089,24 @@ wheels = [
 ]
 
 [[package]]
+name = "sdmetrics"
+version = "0.25.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "copulas" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "plotly" },
+    { name = "scikit-learn" },
+    { name = "scipy" },
+    { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/df/13/806476e45e873684b9d5a7e5ce240ccc7c60d820e90593be34366e7f2e34/sdmetrics-0.25.0.tar.gz", hash = "sha256:c9ba0f410cecd6fd52f2c8c7c7b444777f572ef2b2881ed8d0fef89865e1168a", size = 134541, upload-time = "2026-01-08T23:22:07.589Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/db/c9/960894f76254d07b00e84cc2e7b0aca44638751a2f90b6c928f8f8d6f697/sdmetrics-0.25.0-py3-none-any.whl", hash = "sha256:24d4e8b3a849c26854a48fc82e55851aa2b8910e049037dbf246e9530b96bb44", size = 198506, upload-time = "2026-01-08T23:22:05.957Z" },
+]
+
+[[package]]
 name = "setuptools"
 version = "84.2.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1125,6 +1180,18 @@ wheels = [
 ]
 
 [[package]]
+name = "tqdm"
+version = "4.70.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0d/ea/b2a5bd54b28a324dae8211928b2d730b6547500342c7e6c6dea08bd0a485/tqdm-4.70.1.tar.gz", hash = "sha256:cefd0eca11b2a37a3aee776544d4f4ae913f02688135b5556b8788dfa474afc4", size = 171846, upload-time = "2026-09-11T07:25:16.601Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a7/03/921a3d3c75785aca9ebfbfcabfbc3a1be12e2ab5265deb026d55a5a3f83e/tqdm-4.70.1-py3-none-any.whl", hash = "sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73", size = 80199, upload-time = "2026-09-11T07:25:14.599Z" },
+]
+
+[[package]]
 name = "triton"
 version = "3.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1166,6 +1233,7 @@ dependencies = [
     { name = "pathlib" },
     { name = "pyyaml" },
     { name = "scikit-learn" },
+    { name = "sdmetrics" },
     { name = "torch" },
 ]
 
@@ -1177,5 +1245,6 @@ requires-dist = [
     { name = "pathlib", specifier = ">=1.0.1" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scikit-learn", specifier = ">=1.9.1" },
+    { name = "sdmetrics", specifier = ">=0.25.0" },
     { name = "torch", specifier = ">=2.15.0" },
 ]

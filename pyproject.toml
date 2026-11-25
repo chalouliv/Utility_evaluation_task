@@ -9,5 +9,6 @@ dependencies = [
     "pathlib>=1.0.1",
     "pyyaml>=6.0.3",
     "scikit-learn>=1.9.1",
+    "sdmetrics>=0.25.0",
     "torch>=2.15.0",
 ]

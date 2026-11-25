@@ -7,7 +7,7 @@ from sklearn.metrics import ( f1_score, log_loss,
 )
 from src import load_real, load_split_synthetic, model_selection
 
-NAME = "evaluate"
+NAME = "evaluate_utility"
 
 WINNERS = {"AGE": "linReg", "PTGENDER": "logL1"}  # from model_selection.csv, change for each task (not ideal)
 
@@ -28,23 +28,24 @@ def score(y_true, y_pred, task) -> dict:
         }
 '''
 
-def predict_and_score(task: str, pipe, X, y) -> dict:
-    if task == "regression" : 
+def predict_and_score(task: str, pipe, X, y):
+    ## Returns (scores, predictions): predicted values for regression, P(positive class) for classification.
+    ## Predictions are kept out of the scores dict so raw_results.csv stays one number per cell.
+    if task == "regression" :
         y_pred = pipe.predict(X)
         return {
             "mae": mean_absolute_error(y, y_pred),
             "rmse": root_mean_squared_error(y, y_pred),
             "r2": r2_score(y, y_pred),
-        }
+        }, y_pred
     else: #task == "classification"
-        y_proba = pipe.predict_proba(X)[:, 1]     
-        y_pred = (y_proba > 0.5).astype(int)  
+        y_proba = pipe.predict_proba(X)[:, 1]
+        y_pred = (y_proba > 0.5).astype(int)
         return {
             "balanced_accuracy": balanced_accuracy_score(y, y_pred),
-            "f1": f1_score(y, y_pred),      
-            "roc_auc": roc_auc_score(y, y_proba) 
-             
-        } 
+            "f1": f1_score(y, y_pred),
+            "roc_auc": roc_auc_score(y, y_proba)
+        }, y_proba
     
 
 def fit(cfg, family: str, X, y, features) -> dict:
@@ -89,6 +90,10 @@ def run(cfg, dpath=None) -> None:
     raw_results_path = out_dir / "raw_results.csv"
     summary_path = out_dir / "summary.csv"
     coefs_path = out_dir / "coefficients.csv"
+    preds_path = out_dir / "predictions.csv"
+    if preds_path.exists():
+        print(f"[{NAME}] {preds_path} exists, skipping. Delete it to rerun.")
+        return
     if coefs_path.exists():
         print(f"[{NAME}] {coefs_path} exists, skipping. Delete it to rerun.")
         return
@@ -149,6 +154,27 @@ def run(cfg, dpath=None) -> None:
             **scores,
         })
 
+    ## Raw predictions per test row for every run (all targets), saved to predictions.csv
+    preds = []
+
+    ## Score a fitted pipeline on (X, y), add the row, and keep the per-row predictions
+    def score_and_record(target, task, comparison, train_set, test_set, eps, seed, n_train, c, pipe, X, y):
+        scores, y_pred = predict_and_score(task, pipe, X, y)
+        add_row(target, comparison, train_set, test_set, eps, seed, n_train, c, scores)
+        classes = getattr(pipe, "classes_", None) if task == "classification" else None
+        preds.append(pd.DataFrame({
+            "target": target,
+            "task": task,
+            "comparison": comparison,
+            "train_set": train_set,
+            "test_set": test_set,
+            "eps": eps,
+            "seed": seed,
+            "y_true": np.asarray(y),
+            "y_pred": np.asarray(y_pred),  # regression: predicted value; classification: P(positive class)
+            "positive_class": classes[1] if classes is not None else None,
+        }))
+
     ## Fit and predict for TRTR: train real, test real (the baseline), per target.
     real_fits = {}
     real_xy = {}
@@ -180,12 +206,12 @@ def run(cfg, dpath=None) -> None:
         add_coefs(target, "NULL", "real_suffled", None, None, null_fits[target])
 
         # Add results of TRTR to rows
-        add_row(target, "TRTR", "real", "real", None, None, len(X_tr), real_fits[target]["C"],
-                predict_and_score(task, real_fits[target]["pipe"], X_te, y_te))
-        
-        # Add results of NULL to rows 
-        add_row(target, "NULL", "real_suffled", "real", None, None, len(X_tr), null_fits[target]["C"],
-                predict_and_score(task, null_fits[target]["pipe"], X_te, y_te))
+        score_and_record(target, task, "TRTR", "real", "real", None, None, len(X_tr), real_fits[target]["C"],
+                         real_fits[target]["pipe"], X_te, y_te)
+
+        # Add results of NULL to rows
+        score_and_record(target, task, "NULL", "real_suffled", "real", None, None, len(X_tr), null_fits[target]["C"],
+                         null_fits[target]["pipe"], X_te, y_te)
 
     ## Iterate through synthetic datasets 
     for _, pair in pairs.iterrows():
@@ -214,19 +240,19 @@ def run(cfg, dpath=None) -> None:
             real_pipe = real_fits[target]["pipe"]
 
             ## TRTS: train real, test synthetic
-            add_row(target, "TRTS", "real", "synthetic", eps, seed, len(X_real_tr), real_fits[target]["C"],
-                    predict_and_score(task, real_pipe, X_syn_te, y_syn_te)) 
+            score_and_record(target, task, "TRTS", "real", "synthetic", eps, seed, len(X_real_tr), real_fits[target]["C"],
+                             real_pipe, X_syn_te, y_syn_te)
 
             ## TSTR: train synthetic, test real
             syn_fit = fit(cfg, WINNERS[target], X_syn_tr, y_syn_tr, features)
             ## Record coefficients of the synthetic fit (shared by TSTR and TSTS)
             add_coefs(target, "TSTR", "synthetic", eps, seed, syn_fit)
-            add_row(target, "TSTR", "synthetic", "real", eps, seed, len(X_syn_tr), syn_fit["C"],
-                    predict_and_score(task, syn_fit["pipe"], X_real_te, y_real_te))
+            score_and_record(target, task, "TSTR", "synthetic", "real", eps, seed, len(X_syn_tr), syn_fit["C"],
+                             syn_fit["pipe"], X_real_te, y_real_te)
 
             ## TSTS: train synthetic, test synthetic (test from same dataset as train)
-            add_row(target, "TSTS", "synthetic", "synthetic", eps, seed, len(X_syn_tr), syn_fit["C"],
-                    predict_and_score(task, syn_fit["pipe"], X_syn_te, y_syn_te))
+            score_and_record(target, task, "TSTS", "synthetic", "synthetic", eps, seed, len(X_syn_tr), syn_fit["C"],
+                             syn_fit["pipe"], X_syn_te, y_syn_te)
 
     # Convert to dataframe and order by target, comparison metric, and epsilon
     raw = pd.DataFrame(rows)
@@ -238,3 +264,5 @@ def run(cfg, dpath=None) -> None:
     raw.to_csv(raw_results_path, index=False)
     summary.to_csv(summary_path, index=False)
     coef_df.to_csv(coefs_path, index=False)
+    if preds:
+        pd.concat(preds, ignore_index=True).to_csv(preds_path, index=False)
